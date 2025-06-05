@@ -45,8 +45,8 @@
 		B0F541F42DF0273E006CD503 = {
 			isa = PBXGroup;
 			children = (
-				B0F541FF2DF0273F006CD503 /* re-live */,
 				B0F541FE2DF0273F006CD503 /* Products */,
+				B0F541FF2DF0273F006CD503 /* re-live */,
 			);
 			sourceTree = "<group>";
 		};
