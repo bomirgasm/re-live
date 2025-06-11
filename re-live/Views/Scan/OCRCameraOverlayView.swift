@@ -7,58 +7,17 @@
 
 import UIKit
 
-
-//class OCRCameraOverlayView: UIView {
-//    private let instructionLabel = UILabel()
-//    private let guideLayer = CAShapeLayer()
-//
-//    override init(frame: CGRect) {
-//        super.init(frame: frame)
-//        setupView()
-//    }
-//
-//    required init?(coder: NSCoder) {
-//        super.init(coder: coder)
-//        setupView()
-//    }
-//
-//    private func setupView() {
-//        backgroundColor = .clear
-//
-//        instructionLabel.text = "Align the document within the frame"
-//        instructionLabel.textColor = .white
-//        instructionLabel.textAlignment = .center
-//        instructionLabel.translatesAutoresizingMaskIntoConstraints = false
-//        addSubview(instructionLabel)
-//
-//        NSLayoutConstraint.activate([
-//            instructionLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
-//            instructionLabel.centerXAnchor.constraint(equalTo: centerXAnchor)
-//        ])
-//
-//        guideLayer.strokeColor = UIColor.yellow.cgColor
-//        guideLayer.fillColor = UIColor.clear.cgColor
-//        guideLayer.lineWidth = 2
-//        layer.addSublayer(guideLayer)
-//    }
-//
-//    override func layoutSubviews() {
-//        super.layoutSubviews()
-//        let rect = bounds.insetBy(dx: 40, dy: 100)
-//        guideLayer.path = UIBezierPath(rect: rect).cgPath
-//    }
-//}
-
-
 final class OCRCameraOverlayView: UIView {
     private let frameView = UIView()
     private let scanLine = UIView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let borderLayer = CAShapeLayer()
+    public let galleryButton = UIButton()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        self.isUserInteractionEnabled = false
         setupView()
     }
 
@@ -72,7 +31,6 @@ final class OCRCameraOverlayView: UIView {
 
         frameView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(frameView)
-
         frameView.layer.addSublayer(borderLayer)
 
         scanLine.backgroundColor = UIColor.systemBlue
@@ -90,6 +48,11 @@ final class OCRCameraOverlayView: UIView {
         subtitleLabel.font = .systemFont(ofSize: 14)
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(subtitleLabel)
+        
+        galleryButton.translatesAutoresizingMaskIntoConstraints = false
+        galleryButton.setImage(UIImage(systemName: "photo.on.rectangle"), for: .normal)
+        galleryButton.tintColor = .white
+        addSubview(galleryButton)
 
         NSLayoutConstraint.activate([
             frameView.centerXAnchor.constraint(equalTo: centerXAnchor),
@@ -106,7 +69,14 @@ final class OCRCameraOverlayView: UIView {
             titleLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
 
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            subtitleLabel.centerXAnchor.constraint(equalTo: centerXAnchor)
+            subtitleLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            
+            galleryButton.widthAnchor.constraint(equalToConstant: 64),
+            galleryButton.heightAnchor.constraint(equalToConstant: 64),
+            galleryButton.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -50),
+            galleryButton.trailingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.trailingAnchor, constant: -20)
+
+            
         ])
     }
 
@@ -130,4 +100,9 @@ final class OCRCameraOverlayView: UIView {
         animation.repeatCount = .infinity
         scanLine.layer.add(animation, forKey: "scan")
     }
+    
+    func setGalleryButtonTarget(_ target: Any?, action: Selector, for event: UIControl.Event) {
+        galleryButton.addTarget(target, action: action, for: event)
+    }
+    
 }
