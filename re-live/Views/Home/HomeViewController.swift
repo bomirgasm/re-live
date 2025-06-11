@@ -5,6 +5,7 @@
 //  Created by Suzie Kim on 6/5/25.
 //
 
+import Foundation
 import UIKit
 import PhotosUI
 import VisionKit
@@ -21,33 +22,39 @@ enum HomeSection: Int, CaseIterable {
 // MARK: - HomeViewController
 
 class HomeViewController: UIViewController {
-
+    
     private var collectionView: UICollectionView!
     private let ocrService = OCRService.shared
-
+    
+    private func showOCRResult(_ text: String) {
+        let resultVC = ScanTextResultViewController(recognizedText: text)
+        navigationController?.pushViewController(resultVC, animated: true)
+    }
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCollectionView()
         view.backgroundColor = .systemBackground
     }
-
+    
     private func setupCollectionView() {
         let layout = UICollectionViewFlowLayout()
         layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         layout.minimumLineSpacing = 16
         layout.minimumInteritemSpacing = 8
-
+        
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.backgroundColor = .clear
-
+        
         collectionView.register(GreetingCell.self, forCellWithReuseIdentifier: GreetingCell.identifier)
         collectionView.register(HealthStatCardCell.self, forCellWithReuseIdentifier: HealthStatCardCell.identifier)
         collectionView.register(ScanStartCell.self, forCellWithReuseIdentifier: ScanStartCell.identifier)
         collectionView.register(RecentRecordCell.self, forCellWithReuseIdentifier: RecentRecordCell.identifier)
-
+        
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -64,7 +71,7 @@ extension HomeViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         return HomeSection.allCases.count
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         switch HomeSection(rawValue: section)! {
         case .greeting: return 1
@@ -73,14 +80,14 @@ extension HomeViewController: UICollectionViewDataSource {
         case .recentRecords: return 3
         }
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         switch HomeSection(rawValue: indexPath.section)! {
         case .greeting:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: GreetingCell.identifier, for: indexPath) as! GreetingCell
             cell.configure(greeting: "Welcome back, Suzie", dateText: "Thursday, May 29, 2025")
             return cell
-
+            
         case .healthStats:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HealthStatCardCell.identifier, for: indexPath) as! HealthStatCardCell
             if indexPath.item == 0 {
@@ -95,7 +102,7 @@ extension HomeViewController: UICollectionViewDataSource {
                 cell.configure(title: "Cholesterol", value: "210", unit: "mg/dL", icon: "drop.fill", status: "Slightly high", statusColor: .systemOrange)
             }
             return cell
-
+            
         case .scanStart:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ScanStartCell.identifier, for: indexPath) as! ScanStartCell
             cell.onScanTapped = { [weak self] in
@@ -105,7 +112,7 @@ extension HomeViewController: UICollectionViewDataSource {
                 self?.presentPhotoPicker()
             }
             return cell
-
+            
         case .recentRecords:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: RecentRecordCell.identifier, for: indexPath) as! RecentRecordCell
             if indexPath.item == 0 {
@@ -138,18 +145,18 @@ extension HomeViewController: UICollectionViewDelegateFlowLayout {
             return CGSize(width: width, height: 100)
         }
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         return 16
     }
-
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
         return 8
     }
 }
 
 extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-
+    
     private func presentDocumentCamera() {
         guard VNDocumentCameraViewController.isSupported else {
             print("Document camera not supported")
@@ -159,7 +166,7 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
         cameraVC.delegate = self
         present(cameraVC, animated: true, completion: nil)
     }
-
+    
     private func presentPhotoPicker() {
         let picker = UIImagePickerController()
         picker.delegate = self
@@ -167,19 +174,19 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
         picker.allowsEditing = false
         present(picker, animated: true, completion: nil)
     }
-
+    
     // MARK: - VNDocumentCameraViewControllerDelegate
-
+    
     func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
         controller.dismiss(animated: true, completion: nil)
     }
-
+    
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
         controller.dismiss(animated: true) {
             print("Camera scan failed: \(error)")
         }
     }
-
+    
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
         controller.dismiss(animated: true) {
             print("Scanned \(scan.pageCount) pages.")
@@ -189,15 +196,17 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
                 switch result {
                 case .success(let ocr):
                     print("OCR text: \n\(ocr.text)")
+                    self.showOCRResult(ocr.text)
                 case .failure(let error):
                     print("OCR failed: \(error)")
                 }
             }
         }
     }
-
+    
+    
     // MARK: - UIImagePickerControllerDelegate
-
+    
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         picker.dismiss(animated: true) {
             if let image = info[.originalImage] as? UIImage {
@@ -213,11 +222,8 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
             }
         }
     }
-
+    
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true, completion: nil)
     }
 }
-
-// 필요한 셀: GreetingCell, HealthStatCardCell, ScanStartCell, RecentRecordCell
-// 이 셀들은 사용자의 기존 코드에서 UIView -> UICollectionViewCell 형태로 변환 필요
