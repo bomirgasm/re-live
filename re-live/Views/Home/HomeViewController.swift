@@ -23,6 +23,7 @@ enum HomeSection: Int, CaseIterable {
 class HomeViewController: UIViewController {
 
     private var collectionView: UICollectionView!
+    private let ocrService = OCRService.shared
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -182,7 +183,16 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
         controller.dismiss(animated: true) {
             print("Scanned \(scan.pageCount) pages.")
-            // TODO: OCR 처리
+            guard scan.pageCount > 0 else { return }
+            let image = scan.imageOfPage(at: 0)
+            self.ocrService.recognizeText(in: image) { result in
+                switch result {
+                case .success(let ocr):
+                    print("OCR text: \n\(ocr.text)")
+                case .failure(let error):
+                    print("OCR failed: \(error)")
+                }
+            }
         }
     }
 
@@ -192,7 +202,14 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
         picker.dismiss(animated: true) {
             if let image = info[.originalImage] as? UIImage {
                 print("Selected image from gallery")
-                // TODO: OCR 처리
+                self.ocrService.recognizeText(in: image) { result in
+                    switch result {
+                    case .success(let ocr):
+                        print("OCR text: \n\(ocr.text)")
+                    case .failure(let error):
+                        print("OCR failed: \(error)")
+                    }
+                }
             }
         }
     }
