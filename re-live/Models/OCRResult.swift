@@ -6,3 +6,8 @@
 //
 
 import Foundation
+
+/// Result of OCR processing containing the raw extracted text.
+struct OCRResult {
+    let text: String
+}

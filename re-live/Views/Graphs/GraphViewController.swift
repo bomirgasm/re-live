@@ -1,8 +1,9 @@
 //
-//  GraphViewController.swift
+//  HealthStatCardCell.swift
 //  re-live
 //
-//  Created by Suzie Kim on 6/5/25.
+//  Created by Suzie Kim on 6/11/25.
 //
 
-import Foundation
+import UIKit
+
