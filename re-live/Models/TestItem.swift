@@ -6,3 +6,9 @@
 //
 
 import Foundation
+
+struct TestItem {
+    let name: String
+    let value: String
+    let unit: String
+}
