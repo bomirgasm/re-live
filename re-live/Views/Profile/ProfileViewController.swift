@@ -1,16 +1,16 @@
 //
-//  HealthStatCardCell.swift
+//  ProfileViewController.swift
 //  re-live
 //
-//  Created by Suzie Kim on 6/11/25.
+//  Created by Suzie Kim on 6/18/25.
 //
 
 import UIKit
 
-class GraphViewController: UIViewController {
+class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
-        title = "Graph"
+        title = "Profile"
     }
 }
