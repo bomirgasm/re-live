@@ -26,11 +26,18 @@ class HomeViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let ocrService = OCRService.shared
     
-    private func showOCRResult(_ text: String) {
-        let resultVC = ScanTextResultViewController(recognizedText: text)
-        navigationController?.pushViewController(resultVC, animated: true)
+//    private func showOCRResult(_ text: String) {
+//        let resultVC = ScanTextResultViewController(recognizedText: text)
+//        navigationController?.pushViewController(resultVC, animated: true)
+//    }
+//    
+    private func showEditView(with ocrText: String, previewImage: UIImage) {
+        let ocrResult = OCRResult(text: ocrText)
+        let editVC = EditResultViewController()
+        editVC.ocrResult = ocrResult
+        editVC.previewImage = previewImage
+        navigationController?.pushViewController(editVC, animated: true)
     }
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,7 +47,7 @@ class HomeViewController: UIViewController {
     
     private func setupCollectionView() {
         let layout = UICollectionViewFlowLayout()
-        layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 0, right: 16)
         layout.minimumLineSpacing = 16
         layout.minimumInteritemSpacing = 8
         
@@ -196,7 +203,8 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
                 switch result {
                 case .success(let ocr):
                     print("OCR text: \n\(ocr.text)")
-                    self.showOCRResult(ocr.text)
+     //               self.showOCRResult(ocr.text)
+                    self.showEditView(with: ocr.text, previewImage: image)
                 case .failure(let error):
                     print("OCR failed: \(error)")
                 }
@@ -215,6 +223,7 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
                     switch result {
                     case .success(let ocr):
                         print("OCR text: \n\(ocr.text)")
+                        self.showEditView(with: ocr.text, previewImage: image)
                     case .failure(let error):
                         print("OCR failed: \(error)")
                     }
