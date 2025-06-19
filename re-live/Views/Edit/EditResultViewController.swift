@@ -4,12 +4,16 @@
 //  Created by Suzie Kim on 6/12/25.
 
 import UIKit
+import Combine
 
 class EditResultViewController: UIViewController {
 
     var ocrResult: OCRResult?
     var previewImage: [UIImage] = []
     var scanTitle: String = "Blood Test Results"
+    var viewModel = EditScanViewModel()
+
+    private var cancellables = Set<AnyCancellable>()
 
     private let scrollView = UIScrollView()
     private let contentStackView = UIStackView()
@@ -69,11 +73,27 @@ class EditResultViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupUI()
+        
         if previewImage == nil {
             print("❌ previewImage is nil")
         } else {
             print("✅ previewImage is set")
         }
+        
+        // GPT 분석 시작
+        if let ocr = ocrResult {
+            //viewModel.analyzeOCRText(ocr.text)
+            viewModel.analyzeOCRText(ocrText: ocr.text, previewImage: previewImage.first!)
+
+        }
+
+        viewModel.$result
+            .receive(on: RunLoop.main)
+            .sink { [weak self] result in
+                guard let result = result else { return }
+                self?.applyScanResult(result)
+            }
+            .store(in: &cancellables)
         
     }
 
@@ -175,6 +195,24 @@ class EditResultViewController: UIViewController {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: Date())
+    }
+
+    func applyScanResult(_ result: HealthScanResult) {
+        // 예: 상단 카드
+        previewTitleLabel.text = result.patientName + " 님의 건강검진 결과"
+        previewDateLabel.text = result.testDate
+
+        // 기존 필드 삭제
+        testsContainerView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        // 항목별 자동 추가
+        for item in result.testItems {
+            let row = TestRowView()
+            row.nameField.text = item.name
+            row.valueField.text = item.value
+            row.unitField.text = item.unit
+            testsContainerView.addArrangedSubview(row)
+        }
     }
 
     @objc private func addTestRow() {

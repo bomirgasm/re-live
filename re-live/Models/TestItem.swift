@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct TestItem {
+struct TestItem: Codable {
     let name: String
     let value: String
-    let unit: String
+    let unit: String?
 }
