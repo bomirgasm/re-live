@@ -5,45 +5,6 @@
 //  Created by Suzie Kim on 6/12/25.
 //
 
-//import Foundation
-//import UIKit
-//
-//final class ScanTextResultViewController: UIViewController {
-//    
-//    private let textView = UITextView()
-//    private let recognizedText: String
-//    
-//    init(recognizedText: String) {
-//        self.recognizedText = recognizedText
-//        super.init(nibName: nil, bundle: nil)
-//    }
-//    
-//    required init?(coder: NSCoder) {
-//        fatalError("init(coder:) has not been implemented")
-//    }
-//    
-//    override func viewDidLoad() {
-//        super.viewDidLoad()
-//        view.backgroundColor = .systemBackground
-//        setupTextView()
-//    }
-//    
-//    private func setupTextView() {
-//        textView.text = recognizedText
-//        textView.isEditable = false
-//        textView.font = UIFont.systemFont(ofSize: 16)
-//        textView.translatesAutoresizingMaskIntoConstraints = false
-//        
-//        view.addSubview(textView)
-//        NSLayoutConstraint.activate([
-//            textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-//            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-//            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-//            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16)
-//        ])
-//    }
-//}
-
 import UIKit
 
 final class ScanTextResultViewController: UIViewController {

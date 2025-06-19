@@ -137,7 +137,8 @@ class EditResultViewController: UIViewController {
 
         addTestButton.addTarget(self, action: #selector(addTestRow), for: .touchUpInside)
         rescanButton.addTarget(self, action: #selector(onRescanTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(onSaveTapped), for: .touchUpInside)
+        saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
+        
 
         addTestRow() // 최초 한 줄 생성
     }
@@ -223,10 +224,6 @@ class EditResultViewController: UIViewController {
     @objc private func onRescanTapped() {
         navigationController?.popViewController(animated: true)
     }
-
-    @objc private func onSaveTapped() {
-        print("Saving...")
-    }
     
     @objc private func openPreviewFullScreen() {
         guard !previewImage.isEmpty else { return }
@@ -271,6 +268,20 @@ class EditResultViewController: UIViewController {
             }
             scrollView.contentSize = CGSize(width: scrollWidth * CGFloat(imageViews.count), height: scrollHeight)
         }
+    }
+    
+    @objc private func saveButtonTapped() {
+        print("📥 Save button tapped")
+//        viewModel.saveResult()
+//        dismiss(animated: true) // 저장 후 화면 닫기
+        if let result = viewModel.result {
+            print("✅ 현재 결과 있음: \(result)")
+        } else {
+            print("⚠️ result 없음")
+        }
+        
+        viewModel.saveResult()
+        dismiss(animated: true)
     }
 
 }
