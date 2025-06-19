@@ -6,7 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B0121DC82E03E34600FAD85D /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = B0121DC72E03E34600FAD85D /* Secrets.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		B0121DC72E03E34600FAD85D /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 		B0F541FD2DF0273F006CD503 /* re-live.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "re-live.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -45,6 +50,7 @@
 		B0F541F42DF0273E006CD503 = {
 			isa = PBXGroup;
 			children = (
+				B0121DC72E03E34600FAD85D /* Secrets.plist */,
 				B0F541FE2DF0273F006CD503 /* Products */,
 				B0F541FF2DF0273F006CD503 /* re-live */,
 			);
@@ -122,6 +128,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B0121DC82E03E34600FAD85D /* Secrets.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

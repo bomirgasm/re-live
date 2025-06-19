@@ -157,7 +157,7 @@ extension HomeViewController: UICollectionViewDelegateFlowLayout {
     }
 }
 
-extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+extension HomeViewController: VNDocumentCameraViewControllerDelegate, PHPickerViewControllerDelegate, UINavigationControllerDelegate {
     
     private func presentDocumentCamera() {
         guard VNDocumentCameraViewController.isSupported else {
@@ -170,10 +170,12 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
     }
     
     private func presentPhotoPicker() {
-        let picker = UIImagePickerController()
+        var configuration = PHPickerConfiguration()
+        configuration.selectionLimit = 0 // 0 = 무제한 선택
+        configuration.filter = .images
+        
+        let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = self
-        picker.sourceType = .photoLibrary
-        picker.allowsEditing = false
         present(picker, animated: true, completion: nil)
     }
     
@@ -224,27 +226,56 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
         }
     }
     
-    
-    // MARK: - UIImagePickerControllerDelegate
-    
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        picker.dismiss(animated: true) {
-            if let image = info[.originalImage] as? UIImage {
-                print("Selected image from gallery")
-                self.ocrService.recognizeText(in: image) { result in
-                    switch result {
-                    case .success(let ocr):
-                        print("OCR text: \n\(ocr.text)")
-                        self.showEditView(with: ocr.text, previewImage: [image])
-                    case .failure(let error):
-                        print("OCR failed: \(error)")
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        var images: [UIImage] = []
+        let dispatchGroup = DispatchGroup()
+        
+        for result in results {
+            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                dispatchGroup.enter()
+                result.itemProvider.loadObject(ofClass: UIImage.self) { (object, error) in
+                    defer { dispatchGroup.leave() }
+                    
+                    if let image = object as? UIImage {
+                        images.append(image)
+                    } else {
+                        print("Failed to load image: \(String(describing: error))")
                     }
                 }
             }
         }
-    }
-    
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true, completion: nil)
+        
+        dispatchGroup.notify(queue: .main) {
+            guard !images.isEmpty else {
+                print("No images loaded from gallery")
+                return
+            }
+            
+            print("Loaded \(images.count) images from gallery")
+            
+            var ocrTexts = Array<String?>(repeating: nil, count: images.count)
+            let ocrGroup = DispatchGroup()
+            
+            for (index, image) in images.enumerated() {
+                ocrGroup.enter()
+                self.ocrService.recognizeText(in: image) { result in
+                    switch result {
+                    case .success(let ocr):
+                        ocrTexts[index] = ocr.text
+                        print("OCR result (gallery image \(index + 1)):\n\(ocr.text)")
+                    case .failure(let error):
+                        print("OCR failed (gallery image \(index + 1)): \(error)")
+                    }
+                    ocrGroup.leave()
+                }
+            }
+            
+            ocrGroup.notify(queue: .main) {
+                let combinedText = ocrTexts.compactMap { $0 }.joined(separator: "\n\n--- Page Break ---\n\n")
+                self.showEditView(with: combinedText, previewImage: images)
+            }
+        }
     }
 }
