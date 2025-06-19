@@ -8,7 +8,7 @@ import UIKit
 class EditResultViewController: UIViewController {
 
     var ocrResult: OCRResult?
-    var previewImage: UIImage?
+    var previewImage: [UIImage] = []
     var scanTitle: String = "Blood Test Results"
 
     private let scrollView = UIScrollView()
@@ -69,6 +69,12 @@ class EditResultViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupUI()
+        if previewImage == nil {
+            print("❌ previewImage is nil")
+        } else {
+            print("✅ previewImage is set")
+        }
+        
     }
 
     private func setupUI() {
@@ -121,6 +127,8 @@ class EditResultViewController: UIViewController {
         previewCard.backgroundColor = UIColor.systemGray6
         previewCard.layer.cornerRadius = 12
         previewCard.clipsToBounds = true
+        
+        previewCard.isUserInteractionEnabled = true
 
         let hStack = UIStackView()
         hStack.axis = .horizontal
@@ -128,7 +136,7 @@ class EditResultViewController: UIViewController {
         hStack.alignment = .center
         hStack.translatesAutoresizingMaskIntoConstraints = false
 
-        previewImageView.image = previewImage ?? UIImage(systemName: "doc")
+        previewImageView.image = previewImage.first ?? UIImage(systemName: "doc")
         previewImageView.contentMode = .scaleAspectFill
         previewImageView.clipsToBounds = true
         previewImageView.layer.cornerRadius = 8
@@ -181,18 +189,52 @@ class EditResultViewController: UIViewController {
     @objc private func onSaveTapped() {
         print("Saving...")
     }
-
+    
     @objc private func openPreviewFullScreen() {
-        guard let image = previewImage else { return }
+        guard !previewImage.isEmpty else { return }
+        
         let vc = UIViewController()
         vc.view.backgroundColor = .black
-        let imageView = UIImageView(image: image)
-        imageView.contentMode = .scaleAspectFit
-        imageView.frame = vc.view.bounds
-        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        vc.view.addSubview(imageView)
-        self.present(vc, animated: true, completion: nil)
+        
+        let scrollView = UIScrollView()
+        scrollView.isPagingEnabled = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        vc.view.addSubview(scrollView)
+        
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: vc.view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor)
+        ])
+        
+        var imageViews: [UIImageView] = []
+        for image in previewImage {
+            let imageView = UIImageView(image: image)
+            imageView.contentMode = .scaleAspectFit
+            imageView.clipsToBounds = true
+            scrollView.addSubview(imageView)
+            imageViews.append(imageView)
+        }
+        
+        present(vc, animated: true) {
+            // 레이아웃이 완료된 후에 frame 지정
+            let scrollWidth = scrollView.frame.width
+            let scrollHeight = scrollView.frame.height
+            
+            for (index, imageView) in imageViews.enumerated() {
+                imageView.frame = CGRect(
+                    x: CGFloat(index) * scrollWidth,
+                    y: 0,
+                    width: scrollWidth,
+                    height: scrollHeight
+                )
+            }
+            scrollView.contentSize = CGSize(width: scrollWidth * CGFloat(imageViews.count), height: scrollHeight)
+        }
     }
+
 }
 
 class TestRowView: UIStackView {

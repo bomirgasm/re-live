@@ -26,12 +26,7 @@ class HomeViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let ocrService = OCRService.shared
     
-//    private func showOCRResult(_ text: String) {
-//        let resultVC = ScanTextResultViewController(recognizedText: text)
-//        navigationController?.pushViewController(resultVC, animated: true)
-//    }
-//    
-    private func showEditView(with ocrText: String, previewImage: UIImage) {
+    private func showEditView(with ocrText: String, previewImage: [UIImage]) {
         let ocrResult = OCRResult(text: ocrText)
         let editVC = EditResultViewController()
         editVC.ocrResult = ocrResult
@@ -198,16 +193,33 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
         controller.dismiss(animated: true) {
             print("Scanned \(scan.pageCount) pages.")
             guard scan.pageCount > 0 else { return }
-            let image = scan.imageOfPage(at: 0)
-            self.ocrService.recognizeText(in: image) { result in
-                switch result {
-                case .success(let ocr):
-                    print("OCR text: \n\(ocr.text)")
-     //               self.showOCRResult(ocr.text)
-                    self.showEditView(with: ocr.text, previewImage: image)
-                case .failure(let error):
-                    print("OCR failed: \(error)")
+            
+            var images: [UIImage] = []
+            for i in 0..<scan.pageCount {
+                images.append(scan.imageOfPage(at: i))
+            }
+            
+            var ocrTexts: [String] = []
+            let dispatchGroup = DispatchGroup()
+            
+            for (index, image) in images.enumerated() {
+                dispatchGroup.enter()
+                self.ocrService.recognizeText(in: image) { result in
+                    switch result {
+                    case .success(let ocr):
+                        ocrTexts.append(ocr.text)
+                        print("✅ OCR result (page \(index + 1)):\n\(ocr.text)\n")
+                    case .failure(let error):
+                        print("OCR failed: \(error)")
+                        print("❌ OCR failed on page \(index + 1): \(error)")
+                    }
+                    dispatchGroup.leave()
                 }
+            }
+            
+            dispatchGroup.notify(queue: .main) {
+                let combinedText = ocrTexts.joined(separator: "\n\n--- Page Break --- \n\n")
+                self.showEditView(with: combinedText, previewImage: images)
             }
         }
     }
@@ -223,7 +235,7 @@ extension HomeViewController: VNDocumentCameraViewControllerDelegate, UIImagePic
                     switch result {
                     case .success(let ocr):
                         print("OCR text: \n\(ocr.text)")
-                        self.showEditView(with: ocr.text, previewImage: image)
+                        self.showEditView(with: ocr.text, previewImage: [image])
                     case .failure(let error):
                         print("OCR failed: \(error)")
                     }
