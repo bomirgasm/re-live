@@ -16,6 +16,8 @@ import AuthenticationServices
 import KakaoSDKAuth
 import KakaoSDKUser
 import FirebaseCore
+import Foundation
+
 
 //final class LoginViewController: UIViewController {
 final class LoginViewController: UIViewController,
@@ -44,6 +46,12 @@ final class LoginViewController: UIViewController,
         super.viewDidLoad()
         view.backgroundColor = .white
         setupUI()
+        viewModel.onRecordsLoaded = { [weak self] records in
+            records.forEach { LocalStorageService.shared.save($0) }
+            DispatchQueue.main.async {
+                self?.showToast(message: "Fetched \(records.count) records")
+            }
+        }
     }
 
     // PresentationContextProvider
@@ -275,7 +283,9 @@ final class LoginViewController: UIViewController,
         viewModel.login(email: email, password: password) { [weak self] success in
             if success {
                 self?.showToast(message: "Login successful")
-                // TODO: 다음 화면으로 이동
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
             } else {
                 self?.showToast(message: "Login failed")
             }
@@ -286,70 +296,46 @@ final class LoginViewController: UIViewController,
     
     @objc private func googleLoginTapped() {
         
-        // 1) 옵셔널 바인딩으로 clientID 추출
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            // 만약 값이 없으면 토스트나 로그로 사용자에게 알려주고 리턴
-            self.showToast(message: "Google Sign-In not configured")
-            return
-        }
-        
-        // 2) GIDConfiguration 생성 및 할당
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-        
-        // 3) 호출 (withPresenting:completion:)
-        GIDSignIn.sharedInstance.signIn(withPresenting: self) { signInResult, error in
-            if let error = error {
-                self.showToast(message: "Google login failed: \(error.localizedDescription)")
-                return
+        viewModel.loginWithGoogle(from: self) { [weak self] result in
+            switch result {
+            case .success(_):
+                self?.showToast(message: "Google login success")
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
+            case .failure(let error):
+                self?.showToast(message: "Google login failed: \(error.localizedDescription)")
             }
-            
-            // signInResult.user 에 접근
-            self.showToast(message: "Google login success")
-            // TODO: 화면 전환 등
         }
     }
     
     @objc private func appleLoginTapped() {
-        // 예: Apple 로그인 요청
-        let provider = ASAuthorizationAppleIDProvider()
-        let request = provider.createRequest()
-        request.requestedScopes = [.fullName, .email]
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-        controller.performRequests()
-    }
-    
-    @objc private func kakaoLoginTapped() {
-        // 예: Kakao SDK 호출
-        UserApi.shared.loginWithKakaoAccount {(oauthToken, error) in
-                if let error = error {
-                    print(error)
-                }
-                else {
-                    print("loginWithKakaoAccount() success.")
-                    self.importKakaoProfile()
-
-                    // 성공 시 동작 구현
-                    _ = oauthToken
-                }
-            }
-    }
-    
-    @objc private func importKakaoProfile() {
-        UserApi.shared.me() {(user, error) in
-            if let error = error {
-                print(error)
-            }
-            else {
-                print("me() success.")
-                
-                // 성공 시 동작 구현
-                _ = user
+        viewModel.loginWithApple(from: self) { [weak self] result in
+            switch result {
+            case .success(_):
+                self?.showToast(message: "Apple login success")
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
+            case .failure(let error):
+                self?.showToast(message: "Apple login failed: \(error.localizedDescription)")
             }
         }
     }
+    
+    @objc private func kakaoLoginTapped() {
+        viewModel.loginWithKakao(from: self) { [weak self] success in
+            if success {
+                self?.showToast(message: "Kakao login success")
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
+            } else {
+                self?.showToast(message: "Kakao login failed")
+            }
+        }
+    }
+    
     
     @objc private func returnHomeTapped() {
         // 로그인 화면 닫고 탭바 컨트롤러 루트로 돌아가기

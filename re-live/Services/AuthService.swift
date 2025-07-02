@@ -23,7 +23,7 @@ final class AuthService: NSObject {
     
     private var currentNonce: String?
     
-    func signInWithApple(from viewController: UIViewController, completion: @escaping (Result<User, Error>) -> Void) {
+    func signInWithApple(from viewController: UIViewController, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]
@@ -39,11 +39,11 @@ final class AuthService: NSObject {
         self.appleLoginCompletion = completion
     }
     
-    private var appleLoginCompletion: ((Result<User, Error>) -> Void)?
+    private var appleLoginCompletion: ((Result<FirebaseAuth.User, Error>) -> Void)?
     
     // MARK: - Google 로그인
     
-    func signInWithGoogle(from viewController: UIViewController, completion: @escaping (Result<User, Error>) -> Void) {
+    func signInWithGoogle(from viewController: UIViewController, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             completion(.failure(AuthError.missingClientID))
             return

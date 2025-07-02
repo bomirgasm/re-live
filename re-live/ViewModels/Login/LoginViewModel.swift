@@ -21,12 +21,12 @@ protocol LoginViewModelType {
 
     func loginWithGoogle(
         from viewController: UIViewController,
-        completion: @escaping (Result<User, Error>) -> Void
+        completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void
     )
 
     func loginWithApple(
         from viewController: UIViewController,
-        completion: @escaping (Result<User, Error>) -> Void
+        completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void
     )
     
     func loginWithKakao(
@@ -38,8 +38,9 @@ protocol LoginViewModelType {
 
 
 final class LoginViewModel: LoginViewModelType {
-    
+
     private let authService = AuthService.shared
+    var onRecordsLoaded: (([HealthScanResult]) -> Void)?
 
     func login(
         email: String?,
@@ -53,22 +54,63 @@ final class LoginViewModel: LoginViewModelType {
         }
 
         Auth.auth().signIn(withEmail: email, password: password) { _, error in
-            completion(error == nil)
+            if let _ = error {
+                completion(false)
+                return
+            }
+
+            guard let uid = Auth.auth().currentUser?.uid else {
+                completion(false)
+                return
+            }
+
+            FirebaseService.shared.loadRecords(for: uid) { records in
+                self.onRecordsLoaded?(records)
+                completion(true)
+            }
         }
     }
 
     func loginWithGoogle(
         from viewController: UIViewController,
-        completion: @escaping (Result<User, Error>) -> Void
+        completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void
     ) {
-        authService.signInWithGoogle(from: viewController, completion: completion)
+        authService.signInWithGoogle(from: viewController) { result in
+            switch result {
+            case .success(let user):
+                if let uid = Auth.auth().currentUser?.uid {
+                    FirebaseService.shared.loadRecords(for: uid) { records in
+                        self.onRecordsLoaded?(records)
+                        completion(.success(user))
+                    }
+                } else {
+                    completion(.success(user))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
     }
 
     func loginWithApple(
         from viewController: UIViewController,
-        completion: @escaping (Result<User, Error>) -> Void
+        completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void
     ) {
-        authService.signInWithApple(from: viewController, completion: completion)
+        authService.signInWithApple(from: viewController) { result in
+            switch result {
+            case .success(let user):
+                if let uid = Auth.auth().currentUser?.uid {
+                    FirebaseService.shared.loadRecords(for: uid) { records in
+                        self.onRecordsLoaded?(records)
+                        completion(.success(user))
+                    }
+                } else {
+                    completion(.success(user))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
     }
     
     func loginWithKakao(
@@ -87,25 +129,63 @@ final class LoginViewModel: LoginViewModelType {
     }
     
     func loginWithKakao(
-            kakaoUserId: Int,
-            completion: @escaping (Bool) -> Void
-        ) {
-            let kakaoId = kakaoUserId
-            let dummyEmail = "\(kakaoId)@re-live.local"
-            let dummyPassword = String(kakaoId)
+        kakaoUserId: Int,
+        completion: @escaping (Bool) -> Void
+    ) {
+        let kakaoId = kakaoUserId
+        let dummyEmail = "\(kakaoId)@re-live.local"
+        let dummyPassword = String(kakaoId)
 
-            // Firebase Email/Password 방식으로 가입 시도
-            Auth.auth().createUser(withEmail: dummyEmail, password: dummyPassword) { _, error in
-                if let err = error as NSError?, err.code == AuthErrorCode.emailAlreadyInUse.rawValue {
-                    // 이미 가입된 경우 -> 로그인
-                    Auth.auth().signIn(withEmail: dummyEmail, password: dummyPassword) { _, signInError in
-                        completion(signInError == nil)
+        Auth.auth().createUser(withEmail: dummyEmail, password: dummyPassword) { _, error in
+            if let err = error as NSError?, err.code == AuthErrorCode.emailAlreadyInUse.rawValue {
+                Auth.auth().signIn(withEmail: dummyEmail, password: dummyPassword) { _, signInError in
+                    if let _ = signInError {
+                        completion(false)
+                    } else {
+                        self.fetchRecordsAfterSignIn(completion: completion)
                     }
-                } else {
-                    // 신규 가입 성공 또는 다른 에러
-                    completion(error == nil)
                 }
+            } else if error == nil {
+                self.fetchRecordsAfterSignIn(completion: completion)
+            } else {
+                completion(false)
             }
         }
+    }
+
+    private func fetchRecordsAfterSignIn(completion: @escaping (Bool) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            completion(false)
+            return
+        }
+        FirebaseService.shared.loadRecords(for: uid) { records in
+            self.onRecordsLoaded?(records)
+            completion(true)
+        }
+    }
+
+    private func handleKakao(oauthToken: OAuthToken?, error: Error?, completion: @escaping BooleanCompletion) {
+        if let _ = error {
+            completion(false)
+            return
+        }
+
+        UserApi.shared.me { user, meError in
+            if let meError = meError {
+                print("Failed to fetch Kakao user: \(meError)")
+                completion(false)
+                return
+            }
+
+            guard let id = user?.id else {
+                completion(false)
+                return
+            }
+
+            self.loginWithKakao(kakaoUserId: Int(id)) { success in
+                completion(success)
+            }
+        }
+    }
         
 }
