@@ -31,12 +31,6 @@ final class EditScanViewModel: ObservableObject {
 
     }
 
-    private static func today() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: Date())
-    }
-
     func saveResult() {
         guard let result = result else {
             print("❌ 저장할 결과가 없습니다")

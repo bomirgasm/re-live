@@ -98,12 +98,26 @@ final class GPTService {
 
             do {
                 let gptResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
-                guard let content = gptResponse.choices.first?.message.content,
-                      let jsonData = content.data(using: .utf8) else {
+                
+//                guard let content = gptResponse.choices.first?.message.content,
+//                      let jsonData = content.data(using: .utf8) else {
+//                    return completion(.failure(NSError(domain: "EmptyContent", code: -3)))
+//                }
+                
+                guard let content = gptResponse.choices.first?.message.content else {
                     return completion(.failure(NSError(domain: "EmptyContent", code: -3)))
                 }
+                
+                print("🧾 GPT 응답 원문:\n\(content)")
 
-                let result = try JSONDecoder().decode(HealthScanResult.self, from: jsonData)
+                guard let jsonData = content.data(using: .utf8) else {
+                    return completion(.failure(NSError(domain: "InvalidJSONData", code: -4)))
+                }
+
+
+//                let result = try JSONDecoder().decode(HealthScanResult.self, from: jsonData)
+                var result = try JSONDecoder().decode(HealthScanResult.self, from: jsonData)
+                result.savedAt = Self.today()  // 여기서 날짜 주입
                 print("✅ 구조화 성공:\n\(result)")
                 completion(.success(result))
             } catch {
@@ -112,6 +126,13 @@ final class GPTService {
             }
         }.resume()
     }
+    
+    private static func today() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+
 }
 
 struct OpenAIResponse: Codable {

@@ -6,18 +6,50 @@
 //
 
 import UIKit
+import KakaoSDKAuth
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let windowScene = scene as? UIWindowScene else { return }
+//    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+//        guard let windowScene = (scene as? UIWindowScene) else { return }
+//        let window = UIWindow(windowScene: windowScene)
+//        
+//        // LoginViewController를 네비게이션 컨트롤러 루트로 설정
+//        let loginVC = LoginViewController()
+//        let nav = UINavigationController(rootViewController: loginVC)
+//        nav.isNavigationBarHidden = true
+//
+//        window.rootViewController = nav
+//        self.window = window
+//        window.makeKeyAndVisible()
+//    }
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+            if let url = URLContexts.first?.url {
+                if (AuthApi.isKakaoTalkLoginUrl(url)) {
+                    _ = AuthController.handleOpenUrl(url: url)
+                }
+            }
+        }
+    
+    func scene(_ scene: UIScene,
+               willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
+        guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = MainTabBarController()
-        self.window = window
+        
+        // 1) 탭바 컨트롤러를 루트로 설정
+        let tabBar = MainTabBarController()  // 이미 구현된 UITabBarController
+        window.rootViewController = tabBar
         window.makeKeyAndVisible()
+        self.window = window
+        
+        // 2) 인증 필요 시 로그인 화면 모달 표시
+        let loginVC = LoginViewController()
+        loginVC.modalPresentationStyle = .fullScreen
+        tabBar.present(loginVC, animated: false, completion: nil)
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

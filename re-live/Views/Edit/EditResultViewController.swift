@@ -281,6 +281,16 @@ class EditResultViewController: UIViewController {
         }
         
         viewModel.saveResult()
+        let alert = UIAlertController(title: nil, message: "Saved!", preferredStyle: .alert)
+        present(alert, animated: true)
+
+        // 1.5초 후 메시지 자동 사라지고 탭 이동
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            alert.dismiss(animated: true)
+
+            // 탭 전환 
+            self.tabBarController?.selectedIndex = 1
+        }
         dismiss(animated: true)
     }
 

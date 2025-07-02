@@ -21,7 +21,7 @@ class MainTabBarController: UITabBarController {
         let homeVC = UINavigationController(rootViewController: HomeViewController())
         homeVC.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house.fill"), tag: 0)
         
-        let recordsVC = UINavigationController(rootViewController: RecordsListViewController())
+        let recordsVC = UINavigationController(rootViewController: RecordsViewController())
         recordsVC.tabBarItem = UITabBarItem(title: "Records", image: UIImage(systemName: "list.bullet.rectangle"), tag: 1)
         
         let trendsVC = UINavigationController(rootViewController: GraphViewController())
