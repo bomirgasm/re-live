@@ -8,6 +8,7 @@
 import UIKit
 import FirebaseAuth
 import KakaoSDKUser
+import KakaoSDKAuth
 
 // ViewModel 프로토콜 정의
 typealias BooleanCompletion = (Bool) -> Void
@@ -86,26 +87,42 @@ final class LoginViewModel: LoginViewModelType {
                     }
     }
     
-    func loginWithKakao(
-            kakaoUserId: Int,
-            completion: @escaping (Bool) -> Void
-        ) {
-            let kakaoId = kakaoUserId
-            let dummyEmail = "\(kakaoId)@re-live.local"
-            let dummyPassword = String(kakaoId)
 
-            // Firebase Email/Password 방식으로 가입 시도
-            Auth.auth().createUser(withEmail: dummyEmail, password: dummyPassword) { _, error in
-                if let err = error as NSError?, err.code == AuthErrorCode.emailAlreadyInUse.rawValue {
-                    // 이미 가입된 경우 -> 로그인
-                    Auth.auth().signIn(withEmail: dummyEmail, password: dummyPassword) { _, signInError in
-                        completion(signInError == nil)
-                    }
+    private func handleKakao(
+        oauthToken: OAuthToken?,
+        error: Error?,
+        completion: @escaping BooleanCompletion
+    ) {
+        guard error == nil, let token = oauthToken else {
+            completion(false)
+            return
+        }
+
+        // 1) 현재 사용자 정보 조회
+        UserApi.shared.me { user, kakaoError in
+            guard kakaoError == nil, let user = user else {
+                completion(false)
+                return
+            }
+
+            // 2) Firebase 커스텀 토큰 혹은 OAuthProvider를 이용해 로그인
+            //    실제 서비스에서는 서버에서 발급받은 커스텀 토큰을 사용해야 합니다.
+            let credential = OAuthProvider.credential(
+                withProviderID: "oidc.kakao",
+                idToken: token.idToken ?? "",
+                accessToken: token.accessToken
+            )
+
+            Auth.auth().signIn(with: credential) { _, firebaseError in
+                if let firebaseError = firebaseError {
+                    print("Firebase sign-in failed: \(firebaseError)")
+                    completion(false)
                 } else {
-                    // 신규 가입 성공 또는 다른 에러
-                    completion(error == nil)
+                    print("Kakao user \(user.id ?? 0) signed in")
+                    completion(true)
                 }
             }
         }
+    }
         
 }
