@@ -322,34 +322,17 @@ final class LoginViewController: UIViewController,
     }
     
     @objc private func kakaoLoginTapped() {
-        // 예: Kakao SDK 호출
-        UserApi.shared.loginWithKakaoAccount {(oauthToken, error) in
-                if let error = error {
-                    print(error)
-                }
-                else {
-                    print("loginWithKakaoAccount() success.")
-                    self.importKakaoProfile()
-
-                    // 성공 시 동작 구현
-                    _ = oauthToken
-                }
-            }
-    }
-    
-    @objc private func importKakaoProfile() {
-        UserApi.shared.me() {(user, error) in
-            if let error = error {
-                print(error)
-            }
-            else {
-                print("me() success.")
-                
-                // 성공 시 동작 구현
-                _ = user
+        viewModel.loginWithKakao(from: self) { [weak self] success in
+            guard let self = self else { return }
+            if success {
+                self.showToast(message: "Login successful")
+                self.dismiss(animated: true, completion: nil)
+            } else {
+                self.showToast(message: "Kakao login failed")
             }
         }
     }
+    
     
     @objc private func returnHomeTapped() {
         // 로그인 화면 닫고 탭바 컨트롤러 루트로 돌아가기
