@@ -25,6 +25,7 @@ class HomeViewController: UIViewController {
     
     private var collectionView: UICollectionView!
     private let ocrService = OCRService.shared
+    private let viewModel = HomeViewModel()
     
     private func showEditView(with ocrText: String, previewImage: [UIImage]) {
         let ocrResult = OCRResult(text: ocrText)
@@ -41,6 +42,12 @@ class HomeViewController: UIViewController {
         super.viewDidLoad()
         setupCollectionView()
         view.backgroundColor = .systemBackground
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewModel.refresh()
+        collectionView.reloadData()
     }
     
     private func setupCollectionView() {
@@ -90,21 +97,23 @@ extension HomeViewController: UICollectionViewDataSource {
         switch HomeSection(rawValue: indexPath.section)! {
         case .greeting:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: GreetingCell.identifier, for: indexPath) as! GreetingCell
-            cell.configure(greeting: "Welcome back, Suzie", dateText: "Thursday, May 29, 2025")
+            let greeting = "Welcome back, \(viewModel.greetingName)"
+            cell.configure(greeting: greeting, dateText: viewModel.greetingDateText)
             return cell
             
         case .healthStats:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HealthStatCardCell.identifier, for: indexPath) as! HealthStatCardCell
-            if indexPath.item == 0 {
-                cell.configure(
-                    title: "Blood Pressure",
-                    value: "120/80",
-                    unit: "mmHg",
-                    icon: "heart.fill",
-                    status: "Normal",
-                    statusColor: .systemGreen)
-            } else {
-                cell.configure(title: "Cholesterol", value: "210", unit: "mg/dL", icon: "drop.fill", status: "Slightly high", statusColor: .systemOrange)
+            if let items = viewModel.latestResult?.testItems, indexPath.item < items.count {
+                let item = items[indexPath.item]
+                    cell.configure(
+                        title: item.name,
+                        value: item.value,
+                        unit: item.unit ?? "",
+                        icon: "heart.fill",
+                        status: "",
+                        statusColor: .systemGreen)
+                } else {
+                    cell.configure(title: "-", value: "-", unit: "", icon: "heart.fill", status: "", statusColor: .systemGray)
             }
             return cell
             
@@ -120,12 +129,13 @@ extension HomeViewController: UICollectionViewDataSource {
             
         case .recentRecords:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: RecentRecordCell.identifier, for: indexPath) as! RecentRecordCell
-            if indexPath.item == 0 {
-                cell.configure(title: "Annual Check-up", date: "May 15, 2025")
-            } else if indexPath.item == 1 {
-                cell.configure(title: "Blood Test", date: "April 22, 2025")
+            if indexPath.item < viewModel.recentResults.count {
+                let result = viewModel.recentResults[indexPath.item]
+                let title = result.clinicName ?? "Health Record"
+                let date = viewModel.formatted(date: result.testDate)
+                cell.configure(title: title, date: date)
             } else {
-                cell.configure(title: "BP Check", date: "April 10, 2025")
+                cell.configure(title: "No Record", date: "")
             }
             return cell
         }
