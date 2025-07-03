@@ -211,7 +211,7 @@ final class LoginViewController: UIViewController,
         homeButton.tintColor = .gray
         homeButton.titleLabel?.font = .systemFont(ofSize: 14)
         homeButton.semanticContentAttribute = .forceLeftToRight
-        homeButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+//        homeButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
         homeButton.translatesAutoresizingMaskIntoConstraints = false
         homeButton.addTarget(self, action: #selector(returnHomeTapped), for: .touchUpInside)
         

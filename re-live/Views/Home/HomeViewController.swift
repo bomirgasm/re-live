@@ -28,9 +28,12 @@ class HomeViewController: UIViewController {
     
     private func showEditView(with ocrText: String, previewImage: [UIImage]) {
         let ocrResult = OCRResult(text: ocrText)
-        let editVC = EditResultViewController()
-        editVC.ocrResult = ocrResult
-        editVC.previewImage = previewImage
+        let editVC = EditResultViewController(
+            mode: .create(
+                ocr: ocrResult,
+                images: previewImage
+            )
+        )
         navigationController?.pushViewController(editVC, animated: true)
     }
     

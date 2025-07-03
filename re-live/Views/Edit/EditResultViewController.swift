@@ -7,6 +7,21 @@ import UIKit
 import Combine
 
 class EditResultViewController: UIViewController {
+    
+    enum Mode {
+        case create(ocr: OCRResult, images: [UIImage])
+        case update(existing: HealthScanResult)
+    }
+    private let mode: Mode
+    
+    init(mode: Mode) {
+        self.mode = mode
+        super.init(nibName: nil, bundle: nil)
+    }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
 
     var ocrResult: OCRResult?
     var previewImage: [UIImage] = []
@@ -71,14 +86,21 @@ class EditResultViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        switch mode {
+        case .create(let ocr, let imgs):
+          viewModel.analyzeOCRText(ocrText: ocr.text, previewImage: imgs.first!)
+        case .update(let existing):
+          viewModel.result = existing
+          applyScanResult(existing)
+        }
         view.backgroundColor = .systemBackground
         setupUI()
         
-        if previewImage == nil {
-            print("❌ previewImage is nil")
-        } else {
-            print("✅ previewImage is set")
-        }
+//        if previewImage == nil {
+//            print("❌ previewImage is nil")
+//        } else {
+//            print("✅ previewImage is set")
+//        }
         
         // GPT 분석 시작
         if let ocr = ocrResult {
@@ -203,8 +225,8 @@ class EditResultViewController: UIViewController {
         previewTitleLabel.text = result.patientName + " 님의 건강검진 결과"
         previewDateLabel.text = result.testDate
 
-        // 기존 필드 삭제
-        testsContainerView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+//        // 기존 필드 삭제
+//        testsContainerView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         // 항목별 자동 추가
         for item in result.testItems {
@@ -272,8 +294,6 @@ class EditResultViewController: UIViewController {
     
     @objc private func saveButtonTapped() {
         print("📥 Save button tapped")
-//        viewModel.saveResult()
-//        dismiss(animated: true) // 저장 후 화면 닫기
         if let result = viewModel.result {
             print("✅ 현재 결과 있음: \(result)")
         } else {

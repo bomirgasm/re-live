@@ -58,3 +58,4 @@ final class GreetingCell: UICollectionViewCell {
         dateLabel.text = dateText
     }
 }
+
