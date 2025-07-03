@@ -16,8 +16,14 @@ import AuthenticationServices
 import KakaoSDKAuth
 import KakaoSDKUser
 import FirebaseCore
+import FirebaseAuth
 import Foundation
+import CryptoKit
 
+
+extension Notification.Name {
+    static let authStateDidChange = Notification.Name("authStateDidChange")
+}
 
 //final class LoginViewController: UIViewController {
 final class LoginViewController: UIViewController,
@@ -132,7 +138,7 @@ final class LoginViewController: UIViewController,
         googleButton.contentVerticalAlignment   = .center
         googleButton.imageView?.contentMode     = .scaleAspectFit
         googleButton.translatesAutoresizingMaskIntoConstraints = false
-        googleButton.imageEdgeInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+//        googleButton.imageEdgeInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
 
         
         NSLayoutConstraint.activate([
@@ -140,14 +146,11 @@ final class LoginViewController: UIViewController,
             googleButton.heightAnchor.constraint(equalToConstant: 44)
         ])
         
-        let appleButton = UIButton(type: .system)
-        appleButton.setImage(UIImage(systemName: "applelogo"), for: .normal)
-        appleButton.tintColor = .black
-        appleButton.layer.cornerRadius = 8
-        appleButton.layer.borderWidth = 1
-        appleButton.layer.borderColor = UIColor.gray.withAlphaComponent(0.3).cgColor
+        
+        let appleButton = ASAuthorizationAppleIDButton(type: .signIn, style: .black)
         appleButton.addTarget(self, action: #selector(appleLoginTapped), for: .touchUpInside)
-        appleButton.translatesAutoresizingMaskIntoConstraints = false
+//        appleButton.translatesAutoresizingMaskIntoConstraints = false
+
         
         let kakaoButton = UIButton(type: .system)
         kakaoButton.setImage(UIImage(named: "kakao_icon"), for: .normal)
@@ -220,6 +223,7 @@ final class LoginViewController: UIViewController,
         view.addSubview(passwordField)
         view.addSubview(passwordToggle)
         view.addSubview(loginButton)
+        
         view.addSubview(socialStack)
         view.addSubview(linksStack)
         view.addSubview(homeButton)
@@ -310,6 +314,15 @@ final class LoginViewController: UIViewController,
     }
     
     @objc private func appleLoginTapped() {
+        print("appleLoginTapped")
+        let provider = ASAuthorizationAppleIDProvider()
+        let request  = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]    // 전부 받을지, email만 받을지 선택
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
         viewModel.loginWithApple(from: self) { [weak self] result in
             switch result {
             case .success(_):
@@ -324,16 +337,34 @@ final class LoginViewController: UIViewController,
     }
     
     @objc private func kakaoLoginTapped() {
-        viewModel.loginWithKakao(from: self) { [weak self] success in
-            if success {
-                self?.showToast(message: "Kakao login success")
-                let main = MainTabBarController()
-                main.modalPresentationStyle = .fullScreen
-                self?.present(main, animated: true)
-            } else {
-                self?.showToast(message: "Kakao login failed")
+        print("kakaoLoginTapped")
+        UserApi.shared.loginWithKakaoAccount {(oauthToken, error) in
+            if let error = error {
+                print(error)
+            }
+            else {
+                print("loginWithKakaoAccount() success.")
+                
+                // 🔥 로그인 성공 시점 바로 포스트
+                NotificationCenter.default.post(name: .authStateDidChange, object: nil)
+                
+                // Firebase 연동 호출
+                self.viewModel.handleKakao(oauthToken: oauthToken, error: error) { success in
+                    DispatchQueue.main.async {
+                        if success {
+                            self.showToast(message: "카카오 로그인 성공")
+                            let main = MainTabBarController()
+                            main.modalPresentationStyle = .fullScreen
+                            self.present(main, animated: true)
+                        } else {
+                            self.showToast(message: "카카오 로그인 처리 실패")
+                        }
+                    }
+                }
+                
             }
         }
+        
     }
     
     
