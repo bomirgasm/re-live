@@ -7,16 +7,6 @@
 
 import Foundation
 
-//struct HealthScanResult: Codable {
-//    var patientName: String
-//    var testDate: String    // "yyyy-MM-dd"
-//    var savedAt: String?
-//    var clinicName: String?
-//    var doctorName: String?
-//    var testItems: [TestItem]
-//}
-
-
 struct HealthScanResult: Codable, Identifiable {
     var id: UUID  // 👈 새로 추가
     var patientName: String

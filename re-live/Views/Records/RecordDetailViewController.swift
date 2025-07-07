@@ -54,7 +54,10 @@ final class RecordDetailViewController: UIViewController {
 
     private func populateContent() {
         let title = UILabel()
-        title.text = "검진일: \(result.testDate)\n병원명: \(result.clinicName ?? "-")\n의사: \(result.doctorName)"
+        let dateText   = result.testDate   ?? "날짜 정보 없음"
+        let doctorText = result.doctorName ?? "-"
+        let hospitalText = result.clinicName ?? "-"
+        title.text = "검진일: \(dateText)\n병원명: \(hospitalText)\n의사: \(doctorText)"
         title.numberOfLines = 0
         title.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         contentStackView.addArrangedSubview(title)

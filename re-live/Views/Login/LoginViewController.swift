@@ -16,6 +16,14 @@ import AuthenticationServices
 import KakaoSDKAuth
 import KakaoSDKUser
 import FirebaseCore
+import FirebaseAuth
+import Foundation
+import CryptoKit
+
+
+extension Notification.Name {
+    static let authStateDidChange = Notification.Name("authStateDidChange")
+}
 
 //final class LoginViewController: UIViewController {
 final class LoginViewController: UIViewController,
@@ -44,6 +52,12 @@ final class LoginViewController: UIViewController,
         super.viewDidLoad()
         view.backgroundColor = .white
         setupUI()
+        viewModel.onRecordsLoaded = { [weak self] records in
+            records.forEach { LocalStorageService.shared.save($0) }
+            DispatchQueue.main.async {
+                self?.showToast(message: "Fetched \(records.count) records")
+            }
+        }
     }
 
     // PresentationContextProvider
@@ -124,7 +138,7 @@ final class LoginViewController: UIViewController,
         googleButton.contentVerticalAlignment   = .center
         googleButton.imageView?.contentMode     = .scaleAspectFit
         googleButton.translatesAutoresizingMaskIntoConstraints = false
-        googleButton.imageEdgeInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+//        googleButton.imageEdgeInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
 
         
         NSLayoutConstraint.activate([
@@ -132,14 +146,11 @@ final class LoginViewController: UIViewController,
             googleButton.heightAnchor.constraint(equalToConstant: 44)
         ])
         
-        let appleButton = UIButton(type: .system)
-        appleButton.setImage(UIImage(systemName: "applelogo"), for: .normal)
-        appleButton.tintColor = .black
-        appleButton.layer.cornerRadius = 8
-        appleButton.layer.borderWidth = 1
-        appleButton.layer.borderColor = UIColor.gray.withAlphaComponent(0.3).cgColor
+        
+        let appleButton = ASAuthorizationAppleIDButton(type: .signIn, style: .black)
         appleButton.addTarget(self, action: #selector(appleLoginTapped), for: .touchUpInside)
-        appleButton.translatesAutoresizingMaskIntoConstraints = false
+//        appleButton.translatesAutoresizingMaskIntoConstraints = false
+
         
         let kakaoButton = UIButton(type: .system)
         kakaoButton.setImage(UIImage(named: "kakao_icon"), for: .normal)
@@ -200,7 +211,7 @@ final class LoginViewController: UIViewController,
         homeButton.tintColor = .gray
         homeButton.titleLabel?.font = .systemFont(ofSize: 14)
         homeButton.semanticContentAttribute = .forceLeftToRight
-        homeButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+//        homeButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
         homeButton.translatesAutoresizingMaskIntoConstraints = false
         homeButton.addTarget(self, action: #selector(returnHomeTapped), for: .touchUpInside)
         
@@ -212,6 +223,7 @@ final class LoginViewController: UIViewController,
         view.addSubview(passwordField)
         view.addSubview(passwordToggle)
         view.addSubview(loginButton)
+        
         view.addSubview(socialStack)
         view.addSubview(linksStack)
         view.addSubview(homeButton)
@@ -275,7 +287,9 @@ final class LoginViewController: UIViewController,
         viewModel.login(email: email, password: password) { [weak self] success in
             if success {
                 self?.showToast(message: "Login successful")
-                // TODO: 다음 화면으로 이동
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
             } else {
                 self?.showToast(message: "Login failed")
             }
@@ -286,70 +300,73 @@ final class LoginViewController: UIViewController,
     
     @objc private func googleLoginTapped() {
         
-        // 1) 옵셔널 바인딩으로 clientID 추출
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            // 만약 값이 없으면 토스트나 로그로 사용자에게 알려주고 리턴
-            self.showToast(message: "Google Sign-In not configured")
-            return
-        }
-        
-        // 2) GIDConfiguration 생성 및 할당
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-        
-        // 3) 호출 (withPresenting:completion:)
-        GIDSignIn.sharedInstance.signIn(withPresenting: self) { signInResult, error in
-            if let error = error {
-                self.showToast(message: "Google login failed: \(error.localizedDescription)")
-                return
+        viewModel.loginWithGoogle(from: self) { [weak self] result in
+            switch result {
+            case .success(_):
+                self?.showToast(message: "Google login success")
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
+            case .failure(let error):
+                self?.showToast(message: "Google login failed: \(error.localizedDescription)")
             }
-            
-            // signInResult.user 에 접근
-            self.showToast(message: "Google login success")
-            // TODO: 화면 전환 등
         }
     }
     
     @objc private func appleLoginTapped() {
-        // 예: Apple 로그인 요청
+        print("appleLoginTapped")
         let provider = ASAuthorizationAppleIDProvider()
-        let request = provider.createRequest()
-        request.requestedScopes = [.fullName, .email]
+        let request  = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]    // 전부 받을지, email만 받을지 선택
+
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
         controller.performRequests()
+        viewModel.loginWithApple(from: self) { [weak self] result in
+            switch result {
+            case .success(_):
+                self?.showToast(message: "Apple login success")
+                let main = MainTabBarController()
+                main.modalPresentationStyle = .fullScreen
+                self?.present(main, animated: true)
+            case .failure(let error):
+                self?.showToast(message: "Apple login failed: \(error.localizedDescription)")
+            }
+        }
     }
     
     @objc private func kakaoLoginTapped() {
-        // 예: Kakao SDK 호출
+        print("kakaoLoginTapped")
         UserApi.shared.loginWithKakaoAccount {(oauthToken, error) in
-                if let error = error {
-                    print(error)
-                }
-                else {
-                    print("loginWithKakaoAccount() success.")
-                    self.importKakaoProfile()
-
-                    // 성공 시 동작 구현
-                    _ = oauthToken
-                }
-            }
-    }
-    
-    @objc private func importKakaoProfile() {
-        UserApi.shared.me() {(user, error) in
             if let error = error {
                 print(error)
             }
             else {
-                print("me() success.")
+                print("loginWithKakaoAccount() success.")
                 
-                // 성공 시 동작 구현
-                _ = user
+                // 🔥 로그인 성공 시점 바로 포스트
+                NotificationCenter.default.post(name: .authStateDidChange, object: nil)
+                
+                // Firebase 연동 호출
+                self.viewModel.handleKakao(oauthToken: oauthToken, error: error) { success in
+                    DispatchQueue.main.async {
+                        if success {
+                            self.showToast(message: "카카오 로그인 성공")
+                            let main = MainTabBarController()
+                            main.modalPresentationStyle = .fullScreen
+                            self.present(main, animated: true)
+                        } else {
+                            self.showToast(message: "카카오 로그인 처리 실패")
+                        }
+                    }
+                }
+                
             }
         }
+        
     }
+    
     
     @objc private func returnHomeTapped() {
         // 로그인 화면 닫고 탭바 컨트롤러 루트로 돌아가기
